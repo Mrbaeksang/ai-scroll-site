@@ -15,10 +15,8 @@
   .kick{font-size:1.2vw;letter-spacing:.42em;text-transform:uppercase;font-weight:700}
   .big{font-size:7.4vw;line-height:.96;font-weight:800;letter-spacing:-.025em;margin-top:.15em}.big .o{color:var(--orange)}
   .sub{font-size:1.5vw;margin-top:1.1vw;max-width:24vw;line-height:1.45}
-  /* s1,s2 = light text (dark worlds) */
   #s1,#s2{color:#f2f5f9;text-shadow:0 6px 40px rgba(0,0,0,.6)}#s1 .kick,#s2 .kick{color:var(--teal)}#s1 .sub,#s2 .sub{color:#c8d0de}
   #s1{top:27%;left:6vw}#s2{top:26%;right:6vw;text-align:right}#s2 .sub{margin-left:auto}
-  /* s3 = dark text (cream world) */
   #s3{top:24%;left:6vw;color:#0b0d12}#s3 .kick{color:#c2410c}#s3 .sub{color:#4a5162}
   .cta{pointer-events:auto;display:inline-block;margin-top:2vw;background:#0b0d12;color:#fff;font-weight:800;font-size:1.35vw;padding:.8em 1.7em;border-radius:999px;text-decoration:none}
   #specs{position:absolute;bottom:9vh;left:6vw;right:6vw;display:flex;gap:1.4vw;opacity:0}
@@ -30,7 +28,9 @@
   #dots i{width:.6vw;height:.6vw;border-radius:50%;background:#7b8496;opacity:.5;transition:.3s}#dots i.on{background:var(--orange);opacity:1;transform:scale(1.4)}
   #hint{position:fixed;left:50%;bottom:3.5vh;transform:translateX(-50%);z-index:5;color:#8a93a6;font-size:.95vw;letter-spacing:.3em;display:flex;flex-direction:column;align-items:center;gap:.6vh}
   #hint .a{animation:bob 1.4s ease-in-out infinite}@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(6px)}}
+  #loader{position:fixed;inset:0;z-index:40;background:#0a0c12;display:flex;align-items:center;justify-content:center;color:#8a93a6;font-size:1vw;letter-spacing:.35em;pointer-events:none}
   #scroller{height:620vh}
+  @media (max-width:768px){.big{font-size:12vw}.sub{font-size:3.4vw;max-width:70vw}.kick{font-size:3vw}#s2{text-align:left;right:auto;left:6vw}#s2 .sub{margin-left:0}.cta{font-size:3.4vw}#specs{flex-wrap:wrap}#specs .card{flex:1 1 40%}#specs .n{font-size:6vw}#nav,#tag,#dots{font-size:3vw}}
 </style>
 </head>
 <body>
@@ -51,6 +51,7 @@
   <div id="dots"><i class="on"></i><i></i><i></i></div>
   <div id="hint"><span>SCROLL</span><span class="a">↓</span></div>
   <div id="scroller"></div>
+  <div id="loader"><span id="load">0%</span></div>
 
 <script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/ScrollTrigger.min.js"></script>
@@ -58,52 +59,60 @@
 <script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/CustomEase.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@studio-freight/lenis@1.0.42/dist/lenis.min.js"></script>
 <script>
-/* ===== EDIT THIS per object (frame count + 3 section colors R,G,B) ===== */
+/* ===== EDIT per object: frame count + 3 section colors (R,G,B), dark→brand→light ===== */
 const CFG={ FRAMES:120, colors:[[10,12,18],[11,43,46],[240,236,230]] };
 const FRAMES=CFG.FRAMES, PAD=n=>String(n).padStart(3,'0');
-const cv=document.getElementById('cv'),ctx=cv.getContext('2d');
-let imgs=[],W=0,H=0,DPR=Math.min(devicePixelRatio||1,2);
-// 3색 월드: charcoal -> deep teal -> cream
+const cv=document.getElementById('cv'),ctx=cv.getContext('2d',{alpha:false});
+let imgs=[],W=0,H=0,DPR=Math.min(devicePixelRatio||1,2),dirty=true;
 const st={frame:0,px:0.18,scale:1,r:CFG.colors[0][0],g:CFG.colors[0][1],b:CFG.colors[0][2]};
-function resize(){W=cv.width=innerWidth*DPR;H=cv.height=innerHeight*DPR;draw();}
+function resize(){W=cv.width=innerWidth*DPR;H=cv.height=innerHeight*DPR;dirty=true;}
 function draw(){
   ctx.fillStyle=`rgb(${st.r|0},${st.g|0},${st.b|0})`;ctx.fillRect(0,0,W,H);
   const im=imgs[Math.max(0,Math.min(FRAMES-1,Math.round(st.frame)))];if(!im||!im.width)return;
   const s=Math.min(W/im.width,H/im.height)*st.scale,dw=im.width*s,dh=im.height*s;
   ctx.drawImage(im,(W-dw)/2+st.px*W*0.20,(H-dh)/2,dw,dh);}
-function preload(cb){imgs=new Array(FRAMES);let c=0;for(let i=0;i<FRAMES;i++){const im=new Image();im.onload=im.onerror=()=>{if(++c===FRAMES)cb();};im.src='frames_cut/'+PAD(i)+'.png';imgs[i]=im;}}
+const rd=()=>{dirty=true;};
 addEventListener('resize',resize);
 const dots=[...document.querySelectorAll('#dots i')];
+function setTagDots(p){const n=p<0.36?0:p<0.70?1:2;dots.forEach((d,i)=>d.classList.toggle('on',i===n));
+  const t=document.getElementById('tag');t.textContent=['01 / OVERVIEW','02 / ASSEMBLY','03 / AERO'][n];t.style.color=n===2?'#c2410c':'#2dd4bf';}
+function preload(cb){imgs=new Array(FRAMES);let c=0;const L=document.getElementById('load');
+  const done=()=>{c++;if(L)L.textContent=Math.round(c/FRAMES*100)+'%';if(c===FRAMES)cb();};
+  for(let i=0;i<FRAMES;i++){const im=new Image();im.onload=im.onerror=done;im.src='frames_cut/'+PAD(i)+'.png';imgs[i]=im;}}
 function build(){
   resize();draw();
+  gsap.ticker.add(()=>{if(dirty){draw();dirty=false;}});   // coalesce → max 1 draw/frame (perf)
+  const loader=document.getElementById('loader');if(loader)gsap.to(loader,{opacity:0,duration:.4,onComplete:()=>loader.remove()});
   if(!location.search.includes('nolenis')&&window.Lenis){const l=new Lenis({lerp:.085});(function raf(t){l.raf(t);requestAnimationFrame(raf);})();l.on('scroll',ScrollTrigger.update);}
   gsap.registerPlugin(ScrollTrigger,SplitText,CustomEase);
-  CustomEase.create("world","0.7,0,0.15,1");   // premium morph ease
+  CustomEase.create("world","0.7,0,0.15,1");
   const sp=t=>SplitText.create(t,{type:'chars',aria:'none'}).chars;
   const c1=sp('#s1 .big'),c2=sp('#s2 .big'),c3=sp('#s3 .big');
-  const rd=()=>draw();
-  const tl=gsap.timeline({scrollTrigger:{trigger:'#scroller',start:'top top',end:'bottom bottom',scrub:1,
-    onUpdate:s=>{const p=s.progress,n=p<0.36?0:p<0.70?1:2;dots.forEach((d,i)=>d.classList.toggle('on',i===n));
-      document.getElementById('tag').textContent=['01 / OVERVIEW','02 / ASSEMBLY','03 / AERO'][n];
-      document.getElementById('tag').style.color=n===2?'#c2410c':'#2dd4bf';}}});
-  // 폰 조립 연속 (0 -> 119) 전 구간
-  tl.to(st,{frame:FRAMES-1,ease:'none',duration:1,onUpdate:rd},0);
-  // 배경색 morph: world1 -> world2 (.34) -> world3 (.66), premium ease
-  tl.to(st,{r:CFG.colors[1][0],g:CFG.colors[1][1],b:CFG.colors[1][2],duration:.12,ease:'world',onUpdate:rd},0.32);
-  tl.to(st,{r:CFG.colors[2][0],g:CFG.colors[2][1],b:CFG.colors[2][2],duration:.12,ease:'world',onUpdate:rd},0.64);
-  // 폰 위치: 우 -> 중앙 -> 좌
-  tl.to(st,{px:0,duration:.12,ease:'world'},0.32).to(st,{px:-0.16,duration:.12,ease:'world'},0.64);
-  // 텍스트 섹션 — kick/sub 페이드 + big 글자 kinetic 스태거
-  const secIn=(sel,chars,at,out)=>{
-    tl.set(sel,{opacity:1},at);
-    tl.from(chars,{yPercent:120,opacity:0,stagger:{each:.004},duration:.06,ease:'power3'},at);
-    tl.fromTo(sel+' .kick, '+sel+' .sub, '+sel+' .cta',{opacity:0,y:36},{opacity:1,y:0,duration:.04,ease:'power2'},at+0.015);
-    if(out) tl.to(sel,{opacity:0,y:-50,duration:.05,ease:'power2'},out);
-  };
-  secIn('#s1',c1,0.02,0.30); secIn('#s2',c2,0.42,0.62); secIn('#s3',c3,0.76,null);
-  tl.fromTo('#specs',{opacity:0,y:40},{opacity:1,y:0,duration:.05},0.83);
-  tl.to('#hint',{opacity:0,duration:.02},0.02);
-  ScrollTrigger.refresh();window.__ready=true;
+  const mm=gsap.matchMedia();
+  // reduced-motion: static final state (accessibility)
+  mm.add("(prefers-reduced-motion: reduce)",()=>{
+    st.frame=FRAMES-1;st.r=CFG.colors[2][0];st.g=CFG.colors[2][1];st.b=CFG.colors[2][2];st.px=-0.16;dirty=true;
+    gsap.set('#s3,#specs',{opacity:1});gsap.set('#hint',{opacity:0});setTagDots(0.8);
+  });
+  // full scroll experience
+  mm.add("(prefers-reduced-motion: no-preference)",()=>{
+    const tl=gsap.timeline({scrollTrigger:{trigger:'#scroller',start:'top top',end:'bottom bottom',scrub:1,invalidateOnRefresh:true,onUpdate:s=>setTagDots(s.progress)}});
+    tl.to(st,{frame:FRAMES-1,ease:'none',duration:1,onUpdate:rd},0);
+    tl.to(st,{r:CFG.colors[1][0],g:CFG.colors[1][1],b:CFG.colors[1][2],duration:.12,ease:'world',onUpdate:rd},0.32);
+    tl.to(st,{r:CFG.colors[2][0],g:CFG.colors[2][1],b:CFG.colors[2][2],duration:.12,ease:'world',onUpdate:rd},0.64);
+    tl.to(st,{px:0,duration:.12,ease:'world'},0.32).to(st,{px:-0.16,duration:.12,ease:'world'},0.64);
+    const secIn=(sel,chars,at,out)=>{
+      tl.set(sel,{opacity:1},at);
+      tl.from(chars,{yPercent:120,opacity:0,stagger:{each:.004},duration:.06,ease:'power3'},at);
+      tl.fromTo(sel+' .kick, '+sel+' .sub, '+sel+' .cta',{opacity:0,y:36},{opacity:1,y:0,duration:.04,ease:'power2'},at+0.015);
+      if(out)tl.to(sel,{opacity:0,y:-50,duration:.05,ease:'power2'},out);
+    };
+    secIn('#s1',c1,0.02,0.30);secIn('#s2',c2,0.42,0.62);secIn('#s3',c3,0.76,null);
+    tl.fromTo('#specs',{opacity:0,y:40},{opacity:1,y:0,duration:.05},0.83);
+    tl.to('#hint',{opacity:0,duration:.02},0.02);
+  });
+  if(document.fonts&&document.fonts.ready)document.fonts.ready.then(()=>ScrollTrigger.refresh());
+  window.__ready=true;
 }
 preload(build);
 </script>
