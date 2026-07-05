@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AERO — assembled by AI</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  :root{--orange:#f78166;--teal:#2dd4bf}
+  html,body{background:#0a0c12;font-family:-apple-system,"Helvetica Neue",Arial,sans-serif;overflow-x:hidden}
+  #nav{position:fixed;top:0;left:0;right:0;z-index:30;display:flex;align-items:center;justify-content:space-between;padding:2vh 3vw;font-size:1.05vw;mix-blend-mode:difference;color:#fff}
+  #nav .brand{font-weight:800}#nav .links{display:flex;gap:2.2vw}
+  #stage{position:fixed;inset:0;z-index:1}canvas{width:100%;height:100%;display:block}
+  #copy{position:fixed;inset:0;z-index:3;pointer-events:none}
+  .sec{position:absolute;opacity:0;will-change:transform,opacity}
+  .kick{font-size:1.2vw;letter-spacing:.42em;text-transform:uppercase;font-weight:700}
+  .big{font-size:7.4vw;line-height:.96;font-weight:800;letter-spacing:-.025em;margin-top:.15em}.big .o{color:var(--orange)}
+  .sub{font-size:1.5vw;margin-top:1.1vw;max-width:24vw;line-height:1.45}
+  /* s1,s2 = light text (dark worlds) */
+  #s1,#s2{color:#f2f5f9;text-shadow:0 6px 40px rgba(0,0,0,.6)}#s1 .kick,#s2 .kick{color:var(--teal)}#s1 .sub,#s2 .sub{color:#c8d0de}
+  #s1{top:27%;left:6vw}#s2{top:26%;right:6vw;text-align:right}#s2 .sub{margin-left:auto}
+  /* s3 = dark text (cream world) */
+  #s3{top:24%;left:6vw;color:#0b0d12}#s3 .kick{color:#c2410c}#s3 .sub{color:#4a5162}
+  .cta{pointer-events:auto;display:inline-block;margin-top:2vw;background:#0b0d12;color:#fff;font-weight:800;font-size:1.35vw;padding:.8em 1.7em;border-radius:999px;text-decoration:none}
+  #specs{position:absolute;bottom:9vh;left:6vw;right:6vw;display:flex;gap:1.4vw;opacity:0}
+  #specs .card{flex:1;background:rgba(255,255,255,.7);border:1px solid rgba(0,0,0,.06);border-radius:16px;padding:1.4vw 1.2vw;color:#0b0d12}
+  #specs .n{font-size:2.4vw;font-weight:800;letter-spacing:-.02em}#specs .n .o{color:var(--orange)}
+  #specs .l{font-size:.85vw;color:#6b7280;margin-top:.3em;text-transform:uppercase;letter-spacing:.12em}
+  #tag{position:fixed;top:11vh;left:3vw;z-index:5;font-size:1vw;letter-spacing:.4em;font-weight:700;color:var(--teal)}
+  #dots{position:fixed;right:2.4vw;top:50%;transform:translateY(-50%);z-index:5;display:flex;flex-direction:column;gap:1.1vh}
+  #dots i{width:.6vw;height:.6vw;border-radius:50%;background:#7b8496;opacity:.5;transition:.3s}#dots i.on{background:var(--orange);opacity:1;transform:scale(1.4)}
+  #hint{position:fixed;left:50%;bottom:3.5vh;transform:translateX(-50%);z-index:5;color:#8a93a6;font-size:.95vw;letter-spacing:.3em;display:flex;flex-direction:column;align-items:center;gap:.6vh}
+  #hint .a{animation:bob 1.4s ease-in-out infinite}@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(6px)}}
+  #scroller{height:620vh}
+</style>
+</head>
+<body>
+  <nav id="nav"><div class="brand">AER<span style="color:var(--orange)">O</span></div><div class="links"><span>Design</span><span>Tech</span><span>Buy</span></div></nav>
+  <div id="stage"><canvas id="cv"></canvas></div>
+  <div id="copy">
+    <div class="sec" id="s1"><div class="kick">New · 2026</div><div class="big">AER<span class="o">O</span></div><div class="sub">Every part, engineered to disappear.</div></div>
+    <div class="sec" id="s2"><div class="kick">Built to fit</div><div class="big">One<br>seamless<br><span class="o">whole</span>.</div><div class="sub">Chip, cell and frame — merged into a single body.</div></div>
+    <div class="sec" id="s3"><div class="kick">Meet AERO</div><div class="big">It just <span class="o">clicks</span>.</div><div class="sub">Built end-to-end by AI, in one scroll.</div><a class="cta" href="#">Get yours →</a></div>
+    <div id="specs">
+      <div class="card"><div class="n">6.7<span class="o">"</span></div><div class="l">Display</div></div>
+      <div class="card"><div class="n">120<span class="o">Hz</span></div><div class="l">Refresh</div></div>
+      <div class="card"><div class="n">48<span class="o">MP</span></div><div class="l">Camera</div></div>
+      <div class="card"><div class="n">2<span class="o">day</span></div><div class="l">Battery</div></div>
+    </div>
+  </div>
+  <div id="tag">01 / OVERVIEW</div>
+  <div id="dots"><i class="on"></i><i></i><i></i></div>
+  <div id="hint"><span>SCROLL</span><span class="a">↓</span></div>
+  <div id="scroller"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@studio-freight/lenis@1.0.42/dist/lenis.min.js"></script>
+<script>
+/* ===== EDIT THIS per object (frame count + 3 section colors R,G,B) ===== */
+const CFG={ FRAMES:120, colors:[[10,12,18],[11,43,46],[240,236,230]] };
+const FRAMES=CFG.FRAMES, PAD=n=>String(n).padStart(3,'0');
+const cv=document.getElementById('cv'),ctx=cv.getContext('2d');
+let imgs=[],W=0,H=0,DPR=Math.min(devicePixelRatio||1,2);
+// 3색 월드: charcoal -> deep teal -> cream
+const st={frame:0,px:0.18,scale:1,r:CFG.colors[0][0],g:CFG.colors[0][1],b:CFG.colors[0][2]};
+function resize(){W=cv.width=innerWidth*DPR;H=cv.height=innerHeight*DPR;draw();}
+function draw(){
+  ctx.fillStyle=`rgb(${st.r|0},${st.g|0},${st.b|0})`;ctx.fillRect(0,0,W,H);
+  const im=imgs[Math.max(0,Math.min(FRAMES-1,Math.round(st.frame)))];if(!im||!im.width)return;
+  const s=Math.min(W/im.width,H/im.height)*st.scale,dw=im.width*s,dh=im.height*s;
+  ctx.drawImage(im,(W-dw)/2+st.px*W*0.20,(H-dh)/2,dw,dh);}
+function preload(cb){imgs=new Array(FRAMES);let c=0;for(let i=0;i<FRAMES;i++){const im=new Image();im.onload=im.onerror=()=>{if(++c===FRAMES)cb();};im.src='frames_cut/'+PAD(i)+'.png';imgs[i]=im;}}
+addEventListener('resize',resize);
+const dots=[...document.querySelectorAll('#dots i')];
+function build(){
+  resize();draw();
+  if(!location.search.includes('nolenis')&&window.Lenis){const l=new Lenis({lerp:.085});(function raf(t){l.raf(t);requestAnimationFrame(raf);})();l.on('scroll',ScrollTrigger.update);}
+  gsap.registerPlugin(ScrollTrigger);
+  const rd=()=>draw();
+  const tl=gsap.timeline({scrollTrigger:{trigger:'#scroller',start:'top top',end:'bottom bottom',scrub:1,
+    onUpdate:s=>{const p=s.progress,n=p<0.36?0:p<0.70?1:2;dots.forEach((d,i)=>d.classList.toggle('on',i===n));
+      document.getElementById('tag').textContent=['01 / OVERVIEW','02 / ASSEMBLY','03 / AERO'][n];
+      document.getElementById('tag').style.color=n===2?'#c2410c':'#2dd4bf';}}});
+  // 폰 조립 연속 (0 -> 119) 전 구간
+  tl.to(st,{frame:FRAMES-1,ease:'none',duration:1,onUpdate:rd},0);
+  // 배경색 morph: charcoal(0) -> teal(.40) -> cream(.72)
+  tl.to(st,{r:CFG.colors[1][0],g:CFG.colors[1][1],b:CFG.colors[1][2],duration:.10,onUpdate:rd},0.34);
+  tl.to(st,{r:CFG.colors[2][0],g:CFG.colors[2][1],b:CFG.colors[2][2],duration:.10,onUpdate:rd},0.66);
+  // 폰 위치: 우 -> 중앙 -> 좌
+  tl.to(st,{px:0,duration:.12},0.34).to(st,{px:-0.16,duration:.12},0.66);
+  // 텍스트 섹션
+  tl.fromTo('#s1',{opacity:0,y:70},{opacity:1,y:0,duration:.05},0.02).to('#s1',{opacity:0,y:-60,duration:.05},0.30);
+  tl.fromTo('#s2',{opacity:0,y:70},{opacity:1,y:0,duration:.05},0.42).to('#s2',{opacity:0,y:-60,duration:.05},0.62);
+  tl.fromTo('#s3',{opacity:0,y:70},{opacity:1,y:0,duration:.05},0.76);
+  tl.fromTo('#specs',{opacity:0,y:40},{opacity:1,y:0,duration:.05},0.82);
+  tl.to('#hint',{opacity:0,duration:.02},0.02);
+  ScrollTrigger.refresh();window.__ready=true;
+}
+preload(build);
+</script>
+</body>
+</html>
