@@ -33,7 +33,19 @@ They will use **ChatGPT (image)** + **Google Flow / Veo (video, start+end frame)
 
 Tell the user: **download the video, drop it in this project folder as `source.mp4`, then say "done".**
 
-> Phone is the validated default. For other objects just swap `<OBJECT>`; keep "exploded floating parts → reassembled into one" + "plain dark studio, 16:9".
+> Phone is the validated default. For other objects just swap `<OBJECT>`; keep "components converge into one whole" + "plain dark studio, 16:9".
+
+### Object cheat-sheet (motion + suggested 3 colors)
+The core motion is always **"pieces come together into the finished object"**. Adapt the wording per object:
+| Object | Motion wording for 2A/2C | Suggested colors (dark → mid → light) |
+|---|---|---|
+| Phone | exploded parts → reassemble | `[10,12,18] [11,43,46] [240,236,230]` |
+| Sneaker | sole, upper, laces, cushion float apart → assemble | `[12,10,16] [40,16,20] [245,240,235]` |
+| Perfume | glass bottle, cap, liquid, label pieces converge into the bottle | `[10,12,18] [30,20,44] [244,238,246]` |
+| Watch | case, dial, hands, strap, crown assemble | `[9,11,15] [16,34,40] [238,238,240]` |
+| Any custom | "its main parts float apart, then lock together into one `<OBJECT>`" | dark → a brand-fitting mid tone → near-white |
+
+If an object doesn't "explode" naturally, frame it as parts/ingredients **converging/forming** the whole — the site only needs the video to go from many→one.
 
 ---
 
@@ -95,7 +107,13 @@ Then on **vercel.com** → New Project → import the repo → Framework preset 
 
 ---
 
+## STEP 3.5 — Verify before you show the user (do this every time)
+- `ls frames_cut | wc -l` **equals** `CFG.FRAMES`. If not, fix FRAMES. (Mismatch = last frames go blank.)
+- Frames are `000.png,001.png,…` with no gaps.
+- Open `http://localhost:8099` and scroll top→bottom: you MUST see **3 distinct color worlds** (dark → mid → light), the product **assembling continuously**, and text section 1→2→3 swapping. If it looks like one flat scene, the frames or CFG.colors are wrong — do NOT rewrite the timeline (see gotcha).
+
 ## GOTCHAS (already hit — do not repeat)
+- **DO NOT rewrite or restructure the scroll timeline / sections in `index.html`.** The template already implements the validated "3 color worlds + continuous assembling product" section flow. Only edit `CFG` (frames+colors), the `#s1/#s2/#s3` text, `#specs`, and brand. Rewriting it reintroduces the "feels like one flat video, no section separation" bug that took many iterations to fix.
 - **Matte = rembg** (no GPU needed). The product must be on a plain/dark background in the video for a clean cutout.
 - **Frames must be 0-indexed** `000.png, 001.png …` and `CFG.FRAMES` must equal the file count, or the last frames go blank.
 - **serve.py sends `no-store`** so the browser never shows a stale version. If you ever debug in another server, hard-refresh — a cached page wasted hours here.
