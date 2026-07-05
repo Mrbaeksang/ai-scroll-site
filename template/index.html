@@ -52,8 +52,10 @@
   <div id="hint"><span>SCROLL</span><span class="a">↓</span></div>
   <div id="scroller"></div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/gsap.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/ScrollTrigger.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/SplitText.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.13.0/dist/CustomEase.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@studio-freight/lenis@1.0.42/dist/lenis.min.js"></script>
 <script>
 /* ===== EDIT THIS per object (frame count + 3 section colors R,G,B) ===== */
@@ -75,7 +77,10 @@ const dots=[...document.querySelectorAll('#dots i')];
 function build(){
   resize();draw();
   if(!location.search.includes('nolenis')&&window.Lenis){const l=new Lenis({lerp:.085});(function raf(t){l.raf(t);requestAnimationFrame(raf);})();l.on('scroll',ScrollTrigger.update);}
-  gsap.registerPlugin(ScrollTrigger);
+  gsap.registerPlugin(ScrollTrigger,SplitText,CustomEase);
+  CustomEase.create("world","0.7,0,0.15,1");   // premium morph ease
+  const sp=t=>SplitText.create(t,{type:'chars',aria:'none'}).chars;
+  const c1=sp('#s1 .big'),c2=sp('#s2 .big'),c3=sp('#s3 .big');
   const rd=()=>draw();
   const tl=gsap.timeline({scrollTrigger:{trigger:'#scroller',start:'top top',end:'bottom bottom',scrub:1,
     onUpdate:s=>{const p=s.progress,n=p<0.36?0:p<0.70?1:2;dots.forEach((d,i)=>d.classList.toggle('on',i===n));
@@ -83,16 +88,20 @@ function build(){
       document.getElementById('tag').style.color=n===2?'#c2410c':'#2dd4bf';}}});
   // 폰 조립 연속 (0 -> 119) 전 구간
   tl.to(st,{frame:FRAMES-1,ease:'none',duration:1,onUpdate:rd},0);
-  // 배경색 morph: charcoal(0) -> teal(.40) -> cream(.72)
-  tl.to(st,{r:CFG.colors[1][0],g:CFG.colors[1][1],b:CFG.colors[1][2],duration:.10,onUpdate:rd},0.34);
-  tl.to(st,{r:CFG.colors[2][0],g:CFG.colors[2][1],b:CFG.colors[2][2],duration:.10,onUpdate:rd},0.66);
+  // 배경색 morph: world1 -> world2 (.34) -> world3 (.66), premium ease
+  tl.to(st,{r:CFG.colors[1][0],g:CFG.colors[1][1],b:CFG.colors[1][2],duration:.12,ease:'world',onUpdate:rd},0.32);
+  tl.to(st,{r:CFG.colors[2][0],g:CFG.colors[2][1],b:CFG.colors[2][2],duration:.12,ease:'world',onUpdate:rd},0.64);
   // 폰 위치: 우 -> 중앙 -> 좌
-  tl.to(st,{px:0,duration:.12},0.34).to(st,{px:-0.16,duration:.12},0.66);
-  // 텍스트 섹션
-  tl.fromTo('#s1',{opacity:0,y:70},{opacity:1,y:0,duration:.05},0.02).to('#s1',{opacity:0,y:-60,duration:.05},0.30);
-  tl.fromTo('#s2',{opacity:0,y:70},{opacity:1,y:0,duration:.05},0.42).to('#s2',{opacity:0,y:-60,duration:.05},0.62);
-  tl.fromTo('#s3',{opacity:0,y:70},{opacity:1,y:0,duration:.05},0.76);
-  tl.fromTo('#specs',{opacity:0,y:40},{opacity:1,y:0,duration:.05},0.82);
+  tl.to(st,{px:0,duration:.12,ease:'world'},0.32).to(st,{px:-0.16,duration:.12,ease:'world'},0.64);
+  // 텍스트 섹션 — kick/sub 페이드 + big 글자 kinetic 스태거
+  const secIn=(sel,chars,at,out)=>{
+    tl.set(sel,{opacity:1},at);
+    tl.from(chars,{yPercent:120,opacity:0,stagger:{each:.004},duration:.06,ease:'power3'},at);
+    tl.fromTo(sel+' .kick, '+sel+' .sub, '+sel+' .cta',{opacity:0,y:36},{opacity:1,y:0,duration:.04,ease:'power2'},at+0.015);
+    if(out) tl.to(sel,{opacity:0,y:-50,duration:.05,ease:'power2'},out);
+  };
+  secIn('#s1',c1,0.02,0.30); secIn('#s2',c2,0.42,0.62); secIn('#s3',c3,0.76,null);
+  tl.fromTo('#specs',{opacity:0,y:40},{opacity:1,y:0,duration:.05},0.83);
   tl.to('#hint',{opacity:0,duration:.02},0.02);
   ScrollTrigger.refresh();window.__ready=true;
 }
